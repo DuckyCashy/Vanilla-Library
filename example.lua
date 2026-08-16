@@ -1,4 +1,4 @@
-local Vanilla = loadstring(game:HttpGet("https://raw.githubusercontent.com/duckycashy/Vanilla-Library/main/Source.lua"))()
+local Vanilla = loadstring(game:HttpGet("https://raw.githubusercontent.com/DuckyCashy/Vanilla-Library/refs/heads/main/source.lua"))()
 local UserInputService = game:GetService("UserInputService")
 
 -- Theme Configuration
