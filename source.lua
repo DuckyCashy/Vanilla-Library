@@ -6,60 +6,33 @@ local HttpService = game:GetService("HttpService")
 local CoreGui = (cloneref and cloneref(game:GetService("CoreGui"))) or game:GetService("CoreGui")
 
 local function GetSafeContainer()
-    return gethui and gethui() or CoreGui
+    return (gethui and gethui()) or CoreGui
 end
 
-local Library = {
+local Vanilla = {
     Flags = {},
     Callbacks = {},
-    ConfigFolder = "ScriptConfigs",
-    CurrentTheme = {
-        Background = Color3.fromRGB(20, 20, 24),
-        Header = Color3.fromRGB(28, 28, 34),
-        Accent = Color3.fromRGB(0, 140, 255),
-        Text = Color3.fromRGB(240, 240, 245),
-        SubText = Color3.fromRGB(150, 150, 165),
-        Element = Color3.fromRGB(34, 34, 42),
-        Border = Color3.fromRGB(45, 45, 55)
-    },
+    ConfigFolder = "VanillaConfigs",
+    ActiveThemeName = "Dark",
+    NotificationLower = false,
     Themes = {
         Dark = {
-            Background = Color3.fromRGB(20, 20, 24),
-            Header = Color3.fromRGB(28, 28, 34),
-            Accent = Color3.fromRGB(0, 140, 255),
-            Text = Color3.fromRGB(240, 240, 245),
-            SubText = Color3.fromRGB(150, 150, 165),
-            Element = Color3.fromRGB(34, 34, 42),
-            Border = Color3.fromRGB(45, 45, 55)
-        },
-        Midnight = {
-            Background = Color3.fromRGB(12, 12, 16),
-            Header = Color3.fromRGB(18, 18, 24),
-            Accent = Color3.fromRGB(130, 80, 255),
-            Text = Color3.fromRGB(240, 240, 255),
-            SubText = Color3.fromRGB(130, 130, 150),
-            Element = Color3.fromRGB(24, 24, 32),
-            Border = Color3.fromRGB(35, 35, 48)
-        },
-        Crimson = {
-            Background = Color3.fromRGB(18, 18, 18),
-            Header = Color3.fromRGB(26, 26, 26),
-            Accent = Color3.fromRGB(220, 40, 40),
-            Text = Color3.fromRGB(255, 255, 255),
-            SubText = Color3.fromRGB(160, 160, 160),
-            Element = Color3.fromRGB(32, 32, 32),
-            Border = Color3.fromRGB(48, 48, 48)
+            Name = "Dark",
+            Accent = Color3.fromHex("#18181b"),
+            Background = Color3.fromHex("#101010"),
+            Outline = Color3.fromHex("#27272a"),
+            Text = Color3.fromHex("#FFFFFF"),
+            SubText = Color3.fromHex("#a1a1aa"),
+            Placeholder = Color3.fromHex("#7a7a7a"),
+            Button = Color3.fromHex("#27272a"),
+            Icon = Color3.fromHex("#a1a1aa"),
+            Element = Color3.fromHex("#18181b")
         }
     }
 }
 
-local Window = {}
-Window.__index = Window
+Vanilla.CurrentTheme = Vanilla.Themes.Dark
 
-local Tab = {}
-Tab.__index = Tab
-
--- Helper: Window Dragging
 local function MakeDraggable(topbar, frame)
     local dragging, dragInput, dragStart, startPos
     topbar.InputBegan:Connect(function(input)
@@ -87,205 +60,157 @@ local function MakeDraggable(topbar, frame)
     end)
 end
 
-----------------------------------------------------
--- 1. KEY SYSTEM
-----------------------------------------------------
-function Library.ValidateKey(options)
+function Vanilla:AddTheme(themeData)
+    if not themeData or not themeData.Name then return end
+    self.Themes[themeData.Name] = {
+        Name = themeData.Name,
+        Accent = themeData.Accent or Color3.fromRGB(24, 24, 27),
+        Background = themeData.Background or Color3.fromRGB(16, 16, 16),
+        Outline = themeData.Outline or Color3.fromRGB(255, 255, 255),
+        Text = themeData.Text or Color3.fromRGB(255, 255, 255),
+        SubText = themeData.SubText or Color3.fromRGB(160, 160, 170),
+        Placeholder = themeData.Placeholder or Color3.fromRGB(122, 122, 122),
+        Button = themeData.Button or Color3.fromRGB(82, 82, 91),
+        Icon = themeData.Icon or Color3.fromRGB(161, 161, 170),
+        Element = themeData.Element or Color3.fromRGB(28, 28, 32)
+    }
+end
+
+function Vanilla:GetThemes()
+    return self.Themes
+end
+
+function Vanilla:GetCurrentTheme()
+    return self.ActiveThemeName
+end
+
+function Vanilla:SetTheme(themeName)
+    if self.Themes[themeName] then
+        self.ActiveThemeName = themeName
+        self.CurrentTheme = self.Themes[themeName]
+    end
+end
+
+function Vanilla:GetTransparency()
+    return self.Window and self.Window.IsTransparent or false
+end
+
+function Vanilla:ToggleAcrylic(state)
+    if self.Window then
+        self.Window.Acrylic = state
+    end
+end
+
+function Vanilla:SetNotificationLower(state)
+    self.NotificationLower = state
+end
+
+function Vanilla:Notify(options)
     options = options or {}
-    local validKey = options.Key or "default_key"
-    local keyFileName = (options.SavePath or "script_key") .. ".txt"
-    local keyLink = options.Link or ""
-    
-    -- Auto-load saved key
-    if options.SaveKey and isfile and isfile(keyFileName) then
-        local savedKey = readfile(keyFileName)
-        if savedKey == validKey then
-            return true
-        end
+    local title = options.Title or "Notification"
+    local content = options.Content or ""
+
+    local ScreenGui = GetSafeContainer():FindFirstChild("VanillaNotifyGui")
+    if not ScreenGui then
+        ScreenGui = Instance.new("ScreenGui")
+        ScreenGui.Name = "VanillaNotifyGui"
+        ScreenGui.ResetOnSpawn = false
+        ScreenGui.Parent = GetSafeContainer()
     end
 
-    local keyValidated = false
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "KeySystemGui"
-    ScreenGui.Parent = GetSafeContainer()
+    local Holder = ScreenGui:FindFirstChild("NotifyHolder")
+    if not Holder then
+        Holder = Instance.new("Frame")
+        Holder.Name = "NotifyHolder"
+        Holder.Size = UDim2.new(0, 300, 1, 0)
+        Holder.Position = self.NotificationLower and UDim2.new(1, -310, 0, 80) or UDim2.new(1, -310, 0, 20)
+        Holder.BackgroundTransparency = 1
+        Holder.Parent = ScreenGui
 
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(0, 340, 0, 200)
-    Frame.Position = UDim2.new(0.5, -170, 0.5, -100)
-    Frame.BackgroundColor3 = Library.CurrentTheme.Background
-    Frame.BorderSizePixel = 0
-    Frame.Parent = ScreenGui
+        local Layout = Instance.new("UIListLayout")
+        Layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+        Layout.Padding = UDim.new(0, 8)
+        Layout.Parent = Holder
+    end
+
+    local Card = Instance.new("Frame")
+    Card.Size = UDim2.new(1, 0, 0, 60)
+    Card.BackgroundColor3 = self.CurrentTheme.Background
+    Card.BorderSizePixel = 0
+    Card.Parent = Holder
 
     local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 8)
-    Corner.Parent = Frame
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Card
 
-    local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, 0, 0, 40)
-    Title.Text = options.Title or "Key Verification"
-    Title.TextColor3 = Library.CurrentTheme.Text
-    Title.Font = Enum.Font.SourceSansBold
-    Title.TextSize = 16
-    Title.BackgroundTransparency = 1
-    Title.Parent = Frame
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Color = self.CurrentTheme.Outline
+    Stroke.Transparency = 0.8
+    Stroke.Parent = Card
 
-    local KeyInput = Instance.new("TextBox")
-    KeyInput.Size = UDim2.new(1, -40, 0, 36)
-    KeyInput.Position = UDim2.new(0, 20, 0, 55)
-    KeyInput.BackgroundColor3 = Library.CurrentTheme.Element
-    KeyInput.TextColor3 = Library.CurrentTheme.Text
-    KeyInput.PlaceholderText = "Enter key..."
-    KeyInput.Text = ""
-    KeyInput.Font = Enum.Font.SourceSans
-    KeyInput.TextSize = 14
-    KeyInput.Parent = Frame
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Text = title
+    TitleLabel.Size = UDim2.new(1, -16, 0, 24)
+    TitleLabel.Position = UDim2.new(0, 12, 0, 6)
+    TitleLabel.TextColor3 = self.CurrentTheme.Text
+    TitleLabel.Font = Enum.Font.SourceSansBold
+    TitleLabel.TextSize = 14
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Parent = Card
 
-    local InputCorner = Instance.new("UICorner")
-    InputCorner.CornerRadius = UDim.new(0, 6)
-    InputCorner.Parent = KeyInput
+    local ContentLabel = Instance.new("TextLabel")
+    ContentLabel.Text = content
+    ContentLabel.Size = UDim2.new(1, -16, 0, 24)
+    ContentLabel.Position = UDim2.new(0, 12, 0, 28)
+    ContentLabel.TextColor3 = self.CurrentTheme.SubText
+    ContentLabel.Font = Enum.Font.SourceSans
+    ContentLabel.TextSize = 13
+    ContentLabel.TextXAlignment = Enum.TextXAlignment.Left
+    ContentLabel.BackgroundTransparency = 1
+    ContentLabel.Parent = Card
 
-    local SubmitBtn = Instance.new("TextButton")
-    SubmitBtn.Size = UDim2.new(0, 140, 0, 36)
-    SubmitBtn.Position = UDim2.new(0, 20, 0, 105)
-    SubmitBtn.BackgroundColor3 = Library.CurrentTheme.Accent
-    SubmitBtn.TextColor3 = Library.CurrentTheme.Text
-    SubmitBtn.Text = "Submit Key"
-    SubmitBtn.Font = Enum.Font.SourceSansBold
-    SubmitBtn.TextSize = 14
-    SubmitBtn.Parent = Frame
-
-    local SubmitCorner = Instance.new("UICorner")
-    SubmitCorner.CornerRadius = UDim.new(0, 6)
-    SubmitCorner.Parent = SubmitBtn
-
-    local GetKeyBtn = Instance.new("TextButton")
-    GetKeyBtn.Size = UDim2.new(0, 140, 0, 36)
-    GetKeyBtn.Position = UDim2.new(1, -160, 0, 105)
-    GetKeyBtn.BackgroundColor3 = Library.CurrentTheme.Element
-    GetKeyBtn.TextColor3 = Library.CurrentTheme.SubText
-    GetKeyBtn.Text = "Copy Key Link"
-    GetKeyBtn.Font = Enum.Font.SourceSans
-    GetKeyBtn.TextSize = 14
-    GetKeyBtn.Parent = Frame
-
-    local GetCorner = Instance.new("UICorner")
-    GetCorner.CornerRadius = UDim.new(0, 6)
-    GetCorner.Parent = GetKeyBtn
-
-    local StatusLabel = Instance.new("TextLabel")
-    StatusLabel.Size = UDim2.new(1, 0, 0, 30)
-    StatusLabel.Position = UDim2.new(0, 0, 0, 155)
-    StatusLabel.Text = ""
-    StatusLabel.TextColor3 = Color3.fromRGB(245, 80, 80)
-    StatusLabel.Font = Enum.Font.SourceSans
-    StatusLabel.TextSize = 13
-    StatusLabel.BackgroundTransparency = 1
-    StatusLabel.Parent = Frame
-
-    MakeDraggable(Title, Frame)
-
-    GetKeyBtn.MouseButton1Click:Connect(function()
-        if setclipboard then
-            setclipboard(keyLink)
-            StatusLabel.TextColor3 = Color3.fromRGB(80, 245, 80)
-            StatusLabel.Text = "Link copied to clipboard!"
-        else
-            StatusLabel.Text = "Clipboard not supported by executor."
-        end
+    task.delay(4, function()
+        TweenService:Create(Card, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(TitleLabel, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+        TweenService:Create(ContentLabel, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+        task.wait(0.3)
+        Card:Destroy()
     end)
-
-    SubmitBtn.MouseButton1Click:Connect(function()
-        if KeyInput.Text == validKey then
-            if options.SaveKey and writefile then
-                writefile(keyFileName, validKey)
-            end
-            keyValidated = true
-            ScreenGui:Destroy()
-        else
-            StatusLabel.TextColor3 = Color3.fromRGB(245, 80, 80)
-            StatusLabel.Text = "Invalid key provided."
-        end
-    end)
-
-    repeat task.wait() until keyValidated
-    return true
 end
 
-----------------------------------------------------
--- 2. CONFIG SYSTEM
-----------------------------------------------------
-function Library:SetConfigFolder(folderName)
-    self.ConfigFolder = folderName
-    if makefolder and not isfolder(folderName) then
-        makefolder(folderName)
-    end
-end
+local Window = {}
+Window.__index = Window
 
-function Library:SaveConfig(configName)
-    if not writefile then return false end
-    if makefolder and not isfolder(self.ConfigFolder) then
-        makefolder(self.ConfigFolder)
-    end
-    
-    local path = self.ConfigFolder .. "/" .. configName .. ".json"
-    local data = HttpService:JSONEncode(self.Flags)
-    writefile(path, data)
-    return true
-end
+local Tab = {}
+Tab.__index = Tab
 
-function Library:LoadConfig(configName)
-    if not readfile or not isfile then return false end
-    local path = self.ConfigFolder .. "/" .. configName .. ".json"
-    
-    if isfile(path) then
-        local rawData = readfile(path)
-        local decoded = HttpService:JSONDecode(rawData)
-        
-        for flag, value in pairs(decoded) do
-            self.Flags[flag] = value
-            if self.Callbacks[flag] then
-                task.spawn(self.Callbacks[flag], value)
-            end
-        end
-        return true
-    end
-    return false
-end
-
-----------------------------------------------------
--- 3. THEME MANAGEMENT
-----------------------------------------------------
-function Library:SetTheme(themeData)
-    if type(themeData) == "string" and self.Themes[themeData] then
-        self.CurrentTheme = self.Themes[themeData]
-    elseif type(themeData) == "table" then
-        for k, v in pairs(themeData) do
-            self.CurrentTheme[k] = v
-        end
-    end
-end
-
-----------------------------------------------------
--- UI WINDOW CREATION
-----------------------------------------------------
-function Library.CreateWindow(options)
+function Vanilla:CreateWindow(options)
     options = options or {}
-    local windowName = options.Name or "Script Hub"
+    local windowTitle = options.Title or "Vanilla Hub"
+    local author = options.Author and (" " .. options.Author) or ""
+    local themeName = options.Theme or "Dark"
+    local size = options.Size or UDim2.fromOffset(680, 460)
+    local toggleKey = options.ToggleKey or Enum.KeyCode.RightShift
+    local sidebarWidth = options.SideBarWidth or 200
 
-    if options.Theme then
-        Library:SetTheme(options.Theme)
+    if options.Folder then
+        self.ConfigFolder = options.Folder
+    end
+    if self.Themes[themeName] then
+        self:SetTheme(themeName)
     end
 
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = options.GuiName or "MainScriptHub"
+    ScreenGui.Name = "VanillaWindowGui"
     ScreenGui.ResetOnSpawn = false
     ScreenGui.Parent = GetSafeContainer()
 
     local Main = Instance.new("Frame")
     Main.Name = "MainFrame"
-    Main.Size = UDim2.new(0, 520, 0, 360)
-    Main.Position = UDim2.new(0.5, -260, 0.5, -180)
-    Main.BackgroundColor3 = Library.CurrentTheme.Background
+    Main.Size = size
+    Main.Position = UDim2.new(0.5, -size.X.Offset / 2, 0.5, -size.Y.Offset / 2)
+    Main.BackgroundColor3 = self.CurrentTheme.Background
     Main.BorderSizePixel = 0
     Main.Parent = ScreenGui
 
@@ -293,10 +218,16 @@ function Library.CreateWindow(options)
     MainCorner.CornerRadius = UDim.new(0, 8)
     MainCorner.Parent = Main
 
+    local MainStroke = Instance.new("UIStroke")
+    MainStroke.Color = self.CurrentTheme.Outline
+    MainStroke.Transparency = 0.85
+    MainStroke.Parent = Main
+    
+    local topbarHeight = (options.Topbar and options.Topbar.Height) or 44
     local TopBar = Instance.new("Frame")
     TopBar.Name = "TopBar"
-    TopBar.Size = UDim2.new(1, 0, 0, 35)
-    TopBar.BackgroundColor3 = Library.CurrentTheme.Header
+    TopBar.Size = UDim2.new(1, 0, 0, topbarHeight)
+    TopBar.BackgroundColor3 = self.CurrentTheme.Accent
     TopBar.BorderSizePixel = 0
     TopBar.Parent = Main
 
@@ -304,22 +235,23 @@ function Library.CreateWindow(options)
     TopCorner.CornerRadius = UDim.new(0, 8)
     TopCorner.Parent = TopBar
 
-    local Title = Instance.new("TextLabel")
-    Title.Text = windowName
-    Title.Size = UDim2.new(1, -20, 1, 0)
-    Title.Position = UDim2.new(0, 12, 0, 0)
-    Title.TextColor3 = Library.CurrentTheme.Text
-    Title.TextXAlignment = Enum.TextXAlignment.Left
-    Title.Font = Enum.Font.SourceSansBold
-    Title.TextSize = 15
-    Title.BackgroundTransparency = 1
-    Title.Parent = TopBar
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Text = windowTitle .. author
+    TitleLabel.Size = UDim2.new(1, -120, 1, 0)
+    TitleLabel.Position = UDim2.new(0, 14, 0, 0)
+    TitleLabel.TextColor3 = self.CurrentTheme.Text
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.Font = Enum.Font.SourceSansBold
+    TitleLabel.TextSize = 15
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Parent = TopBar
 
     MakeDraggable(TopBar, Main)
 
     local TabContainer = Instance.new("Frame")
-    TabContainer.Size = UDim2.new(0, 130, 1, -45)
-    TabContainer.Position = UDim2.new(0, 8, 0, 40)
+    TabContainer.Name = "TabContainer"
+    TabContainer.Size = UDim2.new(0, sidebarWidth, 1, -(topbarHeight + 10))
+    TabContainer.Position = UDim2.new(0, 8, 0, topbarHeight + 5)
     TabContainer.BackgroundTransparency = 1
     TabContainer.Parent = Main
 
@@ -328,26 +260,78 @@ function Library.CreateWindow(options)
     TabList.Parent = TabContainer
 
     local ContentContainer = Instance.new("Frame")
-    ContentContainer.Size = UDim2.new(1, -150, 1, -45)
-    ContentContainer.Position = UDim2.new(0, 142, 0, 40)
+    ContentContainer.Name = "ContentContainer"
+    ContentContainer.Size = UDim2.new(1, -(sidebarWidth + 24), 1, -(topbarHeight + 10))
+    ContentContainer.Position = UDim2.new(0, sidebarWidth + 14, 0, topbarHeight + 5)
     ContentContainer.BackgroundTransparency = 1
     ContentContainer.Parent = Main
 
-    return setmetatable({
+    local OpenBtnFrame
+    if options.OpenButton and options.OpenButton.Enabled then
+        OpenBtnFrame = Instance.new("TextButton")
+        OpenBtnFrame.Name = "VanillaOpenButton"
+        OpenBtnFrame.Size = UDim2.fromOffset(100, 36)
+        OpenBtnFrame.Position = UDim2.new(0, 20, 0.5, -18)
+        OpenBtnFrame.BackgroundColor3 = self.CurrentTheme.Background
+        OpenBtnFrame.Text = options.OpenButton.Title or "Open Hub"
+        OpenBtnFrame.TextColor3 = self.CurrentTheme.Text
+        OpenBtnFrame.Font = Enum.Font.SourceSansBold
+        OpenBtnFrame.TextSize = 14
+        OpenBtnFrame.Visible = false
+        OpenBtnFrame.Parent = ScreenGui
+
+        local OpenCorner = Instance.new("UICorner")
+        OpenCorner.CornerRadius = options.OpenButton.CornerRadius or UDim.new(0, 8)
+        OpenCorner.Parent = OpenBtnFrame
+
+        MakeDraggable(OpenBtnFrame, OpenBtnFrame)
+        OpenBtnFrame.MouseButton1Click:Connect(function()
+            Main.Visible = true
+            OpenBtnFrame.Visible = false
+        end)
+    end
+
+    local windowObj = setmetatable({
         Gui = ScreenGui,
         Main = Main,
+        OpenBtn = OpenBtnFrame,
         TabContainer = TabContainer,
         ContentContainer = ContentContainer,
+        ToggleKey = toggleKey,
+        IsTransparent = options.Transparent or false,
+        Acrylic = options.Acrylic or false,
         ActiveTab = nil
     }, Window)
+
+    Vanilla.Window = windowObj
+    return windowObj
 end
 
-function Window:CreateTab(name)
+function Window:Toggle()
+    self.Main.Visible = not self.Main.Visible
+    if self.OpenBtn then
+        self.OpenBtn.Visible = not self.Main.Visible
+    end
+end
+
+function Window:ToggleTransparency(state)
+    self.IsTransparent = state
+    self.Main.BackgroundTransparency = state and 0.35 or 0
+end
+
+function Window:SetToggleKey(key)
+    self.ToggleKey = key
+end
+
+function Window:Tab(options)
+    options = options or {}
+    local tabTitle = options.Title or "Tab"
+
     local TabButton = Instance.new("TextButton")
-    TabButton.Size = UDim2.new(1, 0, 0, 30)
-    TabButton.BackgroundColor3 = Library.CurrentTheme.Element
-    TabButton.TextColor3 = Library.CurrentTheme.SubText
-    TabButton.Text = name
+    TabButton.Size = UDim2.new(1, 0, 0, 32)
+    TabButton.BackgroundColor3 = Vanilla.CurrentTheme.Element
+    TabButton.TextColor3 = Vanilla.CurrentTheme.SubText
+    TabButton.Text = tabTitle
     TabButton.Font = Enum.Font.SourceSans
     TabButton.TextSize = 14
     TabButton.Parent = self.TabContainer
@@ -376,105 +360,194 @@ function Window:CreateTab(name)
     TabButton.MouseButton1Click:Connect(function()
         if self.ActiveTab then
             self.ActiveTab.Page.Visible = false
-            TweenService:Create(self.ActiveTab.Button, TweenInfo.new(0.2), {TextColor3 = Library.CurrentTheme.SubText, BackgroundColor3 = Library.CurrentTheme.Element}):Play()
+            TweenService:Create(self.ActiveTab.Button, TweenInfo.new(0.2), {TextColor3 = Vanilla.CurrentTheme.SubText, BackgroundColor3 = Vanilla.CurrentTheme.Element}):Play()
         end
         self.ActiveTab = tabObj
         TabPage.Visible = true
-        TweenService:Create(TabButton, TweenInfo.new(0.2), {TextColor3 = Library.CurrentTheme.Accent, BackgroundColor3 = Library.CurrentTheme.Header}):Play()
+        TweenService:Create(TabButton, TweenInfo.new(0.2), {TextColor3 = Vanilla.CurrentTheme.Text, BackgroundColor3 = Vanilla.CurrentTheme.Button}):Play()
     end)
 
     if not self.ActiveTab then
         self.ActiveTab = tabObj
         TabPage.Visible = true
-        TabButton.TextColor3 = Library.CurrentTheme.Accent
-        TabButton.BackgroundColor3 = Library.CurrentTheme.Header
+        TabButton.TextColor3 = Vanilla.CurrentTheme.Text
+        TabButton.BackgroundColor3 = Vanilla.CurrentTheme.Button
     end
 
     return tabObj
 end
 
-function Tab:AddToggle(options)
+function Tab:Dropdown(options)
     options = options or {}
-    local text = options.Name or "Toggle"
-    local flag = options.Flag
-    local default = options.Default or false
+    local title = options.Title or "Dropdown"
+    local values = options.Values or {}
+    local currentValue = options.Value or values[1] or ""
     local callback = options.Callback or function() end
 
-    local ToggleFrame = Instance.new("Frame")
-    ToggleFrame.Size = UDim2.new(1, -6, 0, 32)
-    ToggleFrame.BackgroundColor3 = Library.CurrentTheme.Element
-    ToggleFrame.Parent = self.Page
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, -6, 0, 36)
+    Frame.BackgroundColor3 = Vanilla.CurrentTheme.Element
+    Frame.ClipsDescendants = true
+    Frame.Parent = self.Page
 
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 6)
-    Corner.Parent = ToggleFrame
+    Corner.Parent = Frame
 
     local Label = Instance.new("TextLabel")
-    Label.Text = text
-    Label.Size = UDim2.new(1, -40, 1, 0)
+    Label.Text = title
+    Label.Size = UDim2.new(0.5, 0, 0, 36)
     Label.Position = UDim2.new(0, 10, 0, 0)
-    Label.TextColor3 = Library.CurrentTheme.Text
+    Label.TextColor3 = Vanilla.CurrentTheme.Text
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Font = Enum.Font.SourceSans
     Label.TextSize = 14
     Label.BackgroundTransparency = 1
-    Label.Parent = ToggleFrame
+    Label.Parent = Frame
+
+    local SelectedBtn = Instance.new("TextButton")
+    SelectedBtn.Text = tostring(currentValue)
+    SelectedBtn.Size = UDim2.new(0.45, 0, 0, 26)
+    SelectedBtn.Position = UDim2.new(0.52, 0, 0, 5)
+    SelectedBtn.BackgroundColor3 = Vanilla.CurrentTheme.Button
+    SelectedBtn.TextColor3 = Vanilla.CurrentTheme.Text
+    SelectedBtn.Font = Enum.Font.SourceSans
+    SelectedBtn.TextSize = 13
+    SelectedBtn.Parent = Frame
+
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.CornerRadius = UDim.new(0, 4)
+    BtnCorner.Parent = SelectedBtn
+
+    local isOpen = false
+    SelectedBtn.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        Frame.Size = isOpen and UDim2.new(1, -6, 0, 36 + (#values * 28)) or UDim2.new(1, -6, 0, 36)
+    end)
+
+    for i, val in ipairs(values) do
+        local ItemBtn = Instance.new("TextButton")
+        ItemBtn.Text = tostring(val)
+        ItemBtn.Size = UDim2.new(1, -20, 0, 24)
+        ItemBtn.Position = UDim2.new(0, 10, 0, 36 + ((i - 1) * 28))
+        ItemBtn.BackgroundColor3 = Vanilla.CurrentTheme.Background
+        ItemBtn.TextColor3 = Vanilla.CurrentTheme.SubText
+        ItemBtn.Font = Enum.Font.SourceSans
+        ItemBtn.TextSize = 13
+        ItemBtn.Parent = Frame
+
+        local ItemCorner = Instance.new("UICorner")
+        ItemCorner.CornerRadius = UDim.new(0, 4)
+        ItemCorner.Parent = ItemBtn
+
+        ItemBtn.MouseButton1Click:Connect(function()
+            currentValue = val
+            SelectedBtn.Text = tostring(val)
+            isOpen = false
+            Frame.Size = UDim2.new(1, -6, 0, 36)
+            task.spawn(callback, val)
+        end)
+    end
+end
+
+function Tab:Toggle(options)
+    options = options or {}
+    local title = options.Title or "Toggle"
+    local state = options.Value or false
+    local callback = options.Callback or function() end
+
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, -6, 0, 36)
+    Frame.BackgroundColor3 = Vanilla.CurrentTheme.Element
+    Frame.Parent = self.Page
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Frame
+
+    local Label = Instance.new("TextLabel")
+    Label.Text = title
+    Label.Size = UDim2.new(1, -50, 1, 0)
+    Label.Position = UDim2.new(0, 10, 0, 0)
+    Label.TextColor3 = Vanilla.CurrentTheme.Text
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Font = Enum.Font.SourceSans
+    Label.TextSize = 14
+    Label.BackgroundTransparency = 1
+    Label.Parent = Frame
 
     local Box = Instance.new("TextButton")
     Box.Text = ""
     Box.Size = UDim2.new(0, 18, 0, 18)
     Box.Position = UDim2.new(1, -28, 0.5, -9)
-    Box.BackgroundColor3 = default and Library.CurrentTheme.Accent or Library.CurrentTheme.Background
-    Box.Parent = ToggleFrame
+    Box.BackgroundColor3 = state and Vanilla.CurrentTheme.Button or Vanilla.CurrentTheme.Background
+    Box.Parent = Frame
 
     local BoxCorner = Instance.new("UICorner")
     BoxCorner.CornerRadius = UDim.new(0, 4)
     BoxCorner.Parent = Box
 
-    local state = default
-    if flag then 
-        Library.Flags[flag] = state
-        Library.Callbacks[flag] = function(v)
-            state = v
-            local targetColor = state and Library.CurrentTheme.Accent or Library.CurrentTheme.Background
-            TweenService:Create(Box, TweenInfo.new(0.2), {BackgroundColor3 = targetColor}):Play()
-            callback(state)
-        end
-    end
-
     Box.MouseButton1Click:Connect(function()
         state = not state
-        if flag then Library.Flags[flag] = state end
-        local targetColor = state and Library.CurrentTheme.Accent or Library.CurrentTheme.Background
-        TweenService:Create(Box, TweenInfo.new(0.2), {BackgroundColor3 = targetColor}):Play()
+        TweenService:Create(Box, TweenInfo.new(0.2), {BackgroundColor3 = state and Vanilla.CurrentTheme.Button or Vanilla.CurrentTheme.Background}):Play()
         task.spawn(callback, state)
     end)
 end
 
-function Tab:AddButton(options)
+function Tab:Keybind(options)
     options = options or {}
-    local text = options.Name or "Button"
+    local title = options.Title or "Keybind"
+    local currentKey = options.Value or Enum.KeyCode.RightShift
     local callback = options.Callback or function() end
 
-    local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(1, -6, 0, 32)
-    Btn.BackgroundColor3 = Library.CurrentTheme.Element
-    Btn.TextColor3 = Library.CurrentTheme.Text
-    Btn.Text = text
-    Btn.Font = Enum.Font.SourceSans
-    Btn.TextSize = 14
-    Btn.Parent = self.Page
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, -6, 0, 36)
+    Frame.BackgroundColor3 = Vanilla.CurrentTheme.Element
+    Frame.Parent = self.Page
 
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 6)
-    Corner.Parent = Btn
+    Corner.Parent = Frame
 
-    Btn.MouseButton1Click:Connect(function()
-        TweenService:Create(Btn, TweenInfo.new(0.1), {BackgroundColor3 = Library.CurrentTheme.Accent}):Play()
-        task.wait(0.1)
-        TweenService:Create(Btn, TweenInfo.new(0.1), {BackgroundColor3 = Library.CurrentTheme.Element}):Play()
-        task.spawn(callback)
+    local Label = Instance.new("TextLabel")
+    Label.Text = title
+    Label.Size = UDim2.new(0.6, 0, 1, 0)
+    Label.Position = UDim2.new(0, 10, 0, 0)
+    Label.TextColor3 = Vanilla.CurrentTheme.Text
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Font = Enum.Font.SourceSans
+    Label.TextSize = 14
+    Label.BackgroundTransparency = 1
+    Label.Parent = Frame
+
+    local KeyBtn = Instance.new("TextButton")
+    KeyBtn.Text = typeof(currentKey) == "EnumItem" and currentKey.Name or tostring(currentKey)
+    KeyBtn.Size = UDim2.new(0.35, -10, 0, 26)
+    KeyBtn.Position = UDim2.new(0.65, 0, 0.5, -13)
+    KeyBtn.BackgroundColor3 = Vanilla.CurrentTheme.Button
+    KeyBtn.TextColor3 = Vanilla.CurrentTheme.Text
+    KeyBtn.Font = Enum.Font.SourceSans
+    KeyBtn.TextSize = 13
+    KeyBtn.Parent = Frame
+
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.CornerRadius = UDim.new(0, 4)
+    BtnCorner.Parent = KeyBtn
+
+    local listening = false
+    KeyBtn.MouseButton1Click:Connect(function()
+        listening = true
+        KeyBtn.Text = "..."
+    end)
+
+    UserInputService.InputBegan:Connect(function(input)
+        if listening and input.UserInputType == Enum.UserInputType.Keyboard then
+            listening = false
+            currentKey = input.KeyCode
+            KeyBtn.Text = currentKey.Name
+            task.spawn(callback, currentKey)
+        end
     end)
 end
 
-return Library
+return Vanilla
