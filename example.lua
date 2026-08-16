@@ -1,93 +1,68 @@
-local Vanilla = loadstring(game:HttpGet("https://raw.githubusercontent.com/DuckyCashy/Vanilla-Library/refs/heads/main/source.lua"))()
-local UserInputService = game:GetService("UserInputService")
+local Vanilla = loadstring(game:HttpGet("https://raw.githubusercontent.com/YourRepo/Vanilla/main/Source.lua"))()
 
--- Theme Configuration
-Vanilla:AddTheme({
-    Name = "Dark",
-    Accent = Color3.fromHex("#18181b"),
-    Background = Color3.fromHex("#101010"),
-    Outline = Color3.fromHex("#FFFFFF"),
-    Text = Color3.fromHex("#FFFFFF"),
-    Placeholder = Color3.fromHex("#7a7a7a"),
-    Button = Color3.fromHex("#52525b"),
-    Icon = Color3.fromHex("#a1a1aa"),
-})
-
--- Window Creation
 local Window = Vanilla:CreateWindow({
-    Title   = "My Script Hub",
-    Author  = "by you",
-    Folder  = "myhub",
-    Theme   = "Dark",
-    Acrylic = true,
-    Transparent = true,
-    Size    = UDim2.fromOffset(680, 460),
-    ToggleKey  = Enum.KeyCode.RightShift,
-    SideBarWidth = 200,
-    Topbar = { Height = 44 },
-    OpenButton = { Title = "My Hub", Enabled = true },
+    Title = "Vanilla UI",
+    Size = UDim2.fromOffset(580, 520)
 })
 
--- Main Tab
-local MainTab = Window:Tab({ Title = "Main" })
+-- Top Tabs
+local LegitTab = Window:AddTab("Legit")
+local VisualsTab = Window:AddTab("Visuals")
+local RageTab = Window:AddTab("Rage")
+local MiscTab = Window:AddTab("Miscellaneous")
+local SettingsTab = Window:AddTab("Settings")
 
--- Settings Tab
-local ThemeTab = Window:Tab({ Title = "Settings" })
+----------------------------------------------------
+-- LEFT COLUMN
+----------------------------------------------------
+local EnemyESP = VisualsTab:AddLeftGroupbox("Enemy ESP")
 
-ThemeTab:Dropdown({
-    Title  = "Theme",
-    Values = (function()
-        local names = {}
-        for name in pairs(Vanilla:GetThemes()) do
-            table.insert(names, name)
-        end
-        table.sort(names)
-        return names
-    end)(),
-    Value    = Vanilla:GetCurrentTheme(),
-    Callback = function(selected)
-        Vanilla:SetTheme(selected)
-    end,
-})
+EnemyESP:AddToggle("Nametags", { Text = "Nametags", Default = true, Color = Color3.fromRGB(0, 200, 255) })
+    :AddColorPicker("NametagsColor", { Default = Color3.fromRGB(255, 255, 255) })
 
-ThemeTab:Toggle({
-    Title = "Acrylic",
-    Value = Vanilla:GetTransparency(),
-    Callback = function()
-        local isOn = Window.Acrylic
-        Vanilla:ToggleAcrylic(not isOn)
-    end,
-})
+EnemyESP:AddToggle("DisplayDistance", { Text = "Display Distance", Default = true, Color = Color3.fromRGB(0, 200, 255) })
 
-ThemeTab:Toggle({
-    Title = "Transparent",
-    Value = Vanilla:GetTransparency(),
-    Callback = function(state)
-        Window:ToggleTransparency(state)
-    end
-})
+EnemyESP:AddToggle("Boxes", { Text = "Boxes", Default = true, Color = Color3.fromRGB(0, 200, 255) })
+    :AddColorPicker("BoxesColor", { Default = Color3.fromRGB(255, 255, 255) })
 
-local currentKey = Enum.KeyCode.RightShift
+EnemyESP:AddToggle("Healthbars", { Text = "Healthbars", Default = true, Color = Color3.fromRGB(0, 200, 255) })
+    :AddColorPicker("HealthbarsColor", { Default = Color3.fromRGB(180, 200, 255) })
 
-ThemeTab:Keybind({
-    Title = "Toggle UI Key",
-    Value = currentKey,
-    Callback = function(v)
-        currentKey = (typeof(v) == "EnumItem") and v or Enum.KeyCode[v]
-        Window:SetToggleKey(currentKey)
-    end,
-})
+EnemyESP:AddToggle("OffscreenArrows", { Text = "Offscreen Arrows", Default = true, Color = Color3.fromRGB(0, 200, 255) })
+    :AddColorPicker("ArrowsColor", { Default = Color3.fromRGB(255, 0, 255) })
 
-UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == currentKey then
-        Window:Toggle()
-    end
-end)
+local LocalGroup = VisualsTab:AddLeftGroupbox("Local")
 
--- Notifications
-Vanilla:Notify({
-    Title = "PlayerHub",
-    Content = "Welcome to PlayerHub!",
-})
+LocalGroup:AddToggle("GunChams", { Text = "Gun Chams", Default = true, Color = Color3.fromRGB(0, 255, 0) })
+    :AddColorPicker("GunChamsColor", { Default = Color3.fromRGB(130, 0, 255) })
+LocalGroup:AddSlider("GunChamsTrans", { Text = "Gun Chams Transparency", Min = 0, Max = 100, Default = 33, Suffix = "%", Color = Color3.fromRGB(0, 255, 0) })
 
-Vanilla:SetNotificationLower(true)
+LocalGroup:AddToggle("HandChams", { Text = "Hand Chams", Default = true, Color = Color3.fromRGB(0, 255, 0) })
+    :AddColorPicker("HandChamsColor", { Default = Color3.fromRGB(130, 0, 255) })
+LocalGroup:AddSlider("HandChamsTrans", { Text = "Hand Chams Transparency", Min = 0, Max = 100, Default = 33, Suffix = "%", Color = Color3.fromRGB(0, 255, 0) })
+
+LocalGroup:AddToggle("VisLocal", { Text = "Visualize LocalPlayer", Default = true, Color = Color3.fromRGB(0, 255, 0) })
+    :AddColorPicker("VisLocalColor", { Default = Color3.fromRGB(130, 0, 255) })
+LocalGroup:AddSlider("LocalTrans", { Text = "LocalPlayer Transparency", Min = 0, Max = 100, Default = 78, Suffix = "%", Color = Color3.fromRGB(0, 255, 0) })
+
+LocalGroup:AddDropdown("CharModel", { Text = "Selected Character Model", Values = {"Toga (Custom)", "Default"}, Default = "Toga (Custom)" })
+
+----------------------------------------------------
+-- RIGHT COLUMN
+----------------------------------------------------
+local Crosshair = VisualsTab:AddRightGroupbox("Crosshair")
+
+Crosshair:AddToggle("EnableCrosshair", { Text = "Enable Crosshair", Default = true, Color = Color3.fromRGB(0, 200, 255) })
+    :AddColorPicker("CrosshairColor", { Default = Color3.fromRGB(150, 0, 255) })
+Crosshair:AddToggle("AttachMouse", { Text = "Attach to Mouse", Default = true, Color = Color3.fromRGB(0, 200, 255) })
+Crosshair:AddSlider("CrosshairSize", { Text = "Crosshair Size", Min = 0, Max = 100, Default = 7, Suffix = "px", Color = Color3.fromRGB(0, 230, 255) })
+Crosshair:AddSlider("CrosshairSpacing", { Text = "Crosshair Spacing", Min = 0, Max = 20, Default = 2, Suffix = "px", Color = Color3.fromRGB(0, 230, 255) })
+
+local RenderGroup = VisualsTab:AddRightGroupbox("Render")
+
+RenderGroup:AddToggle("ColorCorr", { Text = "Color Correction", Default = true, Color = Color3.fromRGB(0, 255, 0) })
+    :AddColorPicker("CorrColor", { Default = Color3.fromRGB(180, 180, 240) })
+RenderGroup:AddSlider("Brightness", { Text = "Brightness", Min = 0, Max = 100, Default = 0, Suffix = "%", Color = Color3.fromRGB(0, 255, 0) })
+RenderGroup:AddSlider("Contrast", { Text = "Contrast", Min = 0, Max = 100, Default = 0, Suffix = "%", Color = Color3.fromRGB(0, 255, 0) })
+RenderGroup:AddSlider("Saturation", { Text = "Saturation", Min = 0, Max = 100, Default = 65, Suffix = "%", Color = Color3.fromRGB(0, 255, 0) })
+RenderGroup:AddSlider("Intensity", { Text = "Intensity", Min = 0, Max = 40, Default = 12, Color = Color3.fromRGB(0, 255, 0) })
