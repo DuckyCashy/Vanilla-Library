@@ -1,7 +1,6 @@
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
 
 local CoreGui = (cloneref and cloneref(game:GetService("CoreGui"))) or game:GetService("CoreGui")
 
@@ -9,10 +8,9 @@ local function GetSafeContainer()
     return (gethui and gethui()) or CoreGui
 end
 
-local Vanilla = {
+local Linoria = {
     Flags = {},
     Callbacks = {},
-    ConfigFolder = "LinoriaConfigs",
     Theme = {
         Background = Color3.fromRGB(15, 15, 15),
         MainFrame = Color3.fromRGB(20, 20, 20),
@@ -21,8 +19,7 @@ local Vanilla = {
         Outline = Color3.fromRGB(40, 40, 40),
         Accent = Color3.fromRGB(0, 230, 255),
         Text = Color3.fromRGB(220, 220, 220),
-        SubText = Color3.fromRGB(150, 150, 150),
-        Element = Color3.fromRGB(30, 30, 30)
+        SubText = Color3.fromRGB(150, 150, 150)
     }
 }
 
@@ -49,9 +46,6 @@ local function MakeDraggable(topbar, frame)
     end)
 end
 
-----------------------------------------------------
--- WINDOW CLASS
-----------------------------------------------------
 local Window = {}
 Window.__index = Window
 
@@ -61,13 +55,13 @@ Tab.__index = Tab
 local Groupbox = {}
 Groupbox.__index = Groupbox
 
-function Vanilla:CreateWindow(options)
+function Linoria:CreateWindow(options)
     options = options or {}
     local windowTitle = options.Title or "Linoria | Game Name"
-    local size = options.Size or UDim2.fromOffset(550, 600)
+    local size = options.Size or UDim2.fromOffset(560, 520)
 
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "LinoriaGui"
+    ScreenGui.Name = "LinoriaUI"
     ScreenGui.ResetOnSpawn = false
     ScreenGui.Parent = GetSafeContainer()
 
@@ -82,7 +76,7 @@ function Vanilla:CreateWindow(options)
 
     local TopBar = Instance.new("Frame")
     TopBar.Name = "TopBar"
-    TopBar.Size = UDim2.new(1, 0, 0, 25)
+    TopBar.Size = UDim2.new(1, 0, 0, 24)
     TopBar.BackgroundColor3 = self.Theme.Header
     TopBar.BorderColor3 = self.Theme.Outline
     TopBar.BorderSizePixel = 1
@@ -103,8 +97,8 @@ function Vanilla:CreateWindow(options)
 
     local TabContainer = Instance.new("Frame")
     TabContainer.Name = "TabContainer"
-    TabContainer.Size = UDim2.new(1, -16, 0, 24)
-    TabContainer.Position = UDim2.new(0, 8, 0, 32)
+    TabContainer.Size = UDim2.new(1, -16, 0, 22)
+    TabContainer.Position = UDim2.new(0, 8, 0, 30)
     TabContainer.BackgroundTransparency = 1
     TabContainer.Parent = Main
 
@@ -115,8 +109,8 @@ function Vanilla:CreateWindow(options)
 
     local ContentContainer = Instance.new("Frame")
     ContentContainer.Name = "ContentContainer"
-    ContentContainer.Size = UDim2.new(1, -16, 1, -68)
-    ContentContainer.Position = UDim2.new(0, 8, 0, 60)
+    ContentContainer.Size = UDim2.new(1, -16, 1, -60)
+    ContentContainer.Position = UDim2.new(0, 8, 0, 54)
     ContentContainer.BackgroundTransparency = 1
     ContentContainer.Parent = Main
 
@@ -131,14 +125,14 @@ end
 
 function Window:AddTab(name)
     local TabButton = Instance.new("TextButton")
-    TabButton.Size = UDim2.new(0, 75, 1, 0)
-    TabButton.BackgroundColor3 = Vanilla.Theme.Header
-    TabButton.BorderColor3 = Vanilla.Theme.Outline
+    TabButton.Size = UDim2.new(0, 70, 1, 0)
+    TabButton.BackgroundColor3 = Linoria.Theme.Header
+    TabButton.BorderColor3 = Linoria.Theme.Outline
     TabButton.BorderSizePixel = 1
     TabButton.Text = name
-    TabButton.TextColor3 = Vanilla.Theme.SubText
+    TabButton.TextColor3 = Linoria.Theme.SubText
     TabButton.Font = Enum.Font.Code
-    TabButton.TextSize = 13
+    TabButton.TextSize = 12
     TabButton.Parent = self.TabContainer
 
     local Page = Instance.new("Frame")
@@ -155,7 +149,7 @@ function Window:AddTab(name)
     LeftContainer.Parent = Page
 
     local LeftLayout = Instance.new("UIListLayout")
-    LeftLayout.Padding = UDim.new(0, 8)
+    LeftLayout.Padding = UDim.new(0, 6)
     LeftLayout.Parent = LeftContainer
 
     local RightContainer = Instance.new("ScrollingFrame")
@@ -166,7 +160,7 @@ function Window:AddTab(name)
     RightContainer.Parent = Page
 
     local RightLayout = Instance.new("UIListLayout")
-    RightLayout.Padding = UDim.new(0, 8)
+    RightLayout.Padding = UDim.new(0, 6)
     RightLayout.Parent = RightContainer
 
     local tabObj = setmetatable({
@@ -180,64 +174,56 @@ function Window:AddTab(name)
     TabButton.MouseButton1Click:Connect(function()
         if self.ActiveTab then
             self.ActiveTab.Page.Visible = false
-            self.ActiveTab.Button.TextColor3 = Vanilla.Theme.SubText
-            self.ActiveTab.Button.BorderColor3 = Vanilla.Theme.Outline
+            self.ActiveTab.Button.TextColor3 = Linoria.Theme.SubText
+            self.ActiveTab.Button.BorderColor3 = Linoria.Theme.Outline
         end
         self.ActiveTab = tabObj
         Page.Visible = true
-        TabButton.TextColor3 = Vanilla.Theme.Text
-        TabButton.BorderColor3 = Vanilla.Theme.Accent
+        TabButton.TextColor3 = Linoria.Theme.Text
+        TabButton.BorderColor3 = Linoria.Theme.Accent
     end)
 
     if not self.ActiveTab then
         self.ActiveTab = tabObj
         Page.Visible = true
-        TabButton.TextColor3 = Vanilla.Theme.Text
-        TabButton.BorderColor3 = Vanilla.Theme.Accent
+        TabButton.TextColor3 = Linoria.Theme.Text
+        TabButton.BorderColor3 = Linoria.Theme.Accent
     end
 
     return tabObj
 end
 
-----------------------------------------------------
--- GROUPBOX / SECTOR CREATION
-----------------------------------------------------
-function Tab:AddLeftGroupbox(title)
-    return self:CreateGroupbox(self.Left, title)
-end
-
-function Tab:AddRightGroupbox(title)
-    return self:CreateGroupbox(self.Right, title)
-end
+function Tab:AddLeftGroupbox(title) return self:CreateGroupbox(self.Left, title) end
+function Tab:AddRightGroupbox(title) return self:CreateGroupbox(self.Right, title) end
 
 function Tab:CreateGroupbox(parentContainer, title)
     local Group = Instance.new("Frame")
-    Group.Size = UDim2.new(1, 0, 0, 30)
+    Group.Size = UDim2.new(1, 0, 0, 20)
     Group.AutomaticSize = Enum.AutomaticSize.Y
-    Group.BackgroundColor3 = Vanilla.Theme.Groupbox
-    Group.BorderColor3 = Vanilla.Theme.Outline
+    Group.BackgroundColor3 = Linoria.Theme.Groupbox
+    Group.BorderColor3 = Linoria.Theme.Outline
     Group.BorderSizePixel = 1
     Group.Parent = parentContainer
 
     local Header = Instance.new("Frame")
-    Header.Size = UDim2.new(1, 0, 0, 20)
-    Header.BackgroundColor3 = Vanilla.Theme.Header
-    Header.BorderColor3 = Vanilla.Theme.Outline
+    Header.Size = UDim2.new(1, 0, 0, 18)
+    Header.BackgroundColor3 = Linoria.Theme.Header
+    Header.BorderColor3 = Linoria.Theme.Outline
     Header.BorderSizePixel = 1
     Header.Parent = Group
 
     local AccentLine = Instance.new("Frame")
     AccentLine.Size = UDim2.new(1, 0, 0, 1)
     AccentLine.Position = UDim2.new(0, 0, 1, -1)
-    AccentLine.BackgroundColor3 = Vanilla.Theme.Accent
+    AccentLine.BackgroundColor3 = Linoria.Theme.Accent
     AccentLine.BorderSizePixel = 0
     AccentLine.Parent = Header
 
     local TitleLabel = Instance.new("TextLabel")
     TitleLabel.Text = title
     TitleLabel.Size = UDim2.new(1, -10, 1, 0)
-    TitleLabel.Position = UDim2.new(0, 8, 0, 0)
-    TitleLabel.TextColor3 = Vanilla.Theme.Text
+    TitleLabel.Position = UDim2.new(0, 6, 0, 0)
+    TitleLabel.TextColor3 = Linoria.Theme.Text
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     TitleLabel.Font = Enum.Font.Code
     TitleLabel.TextSize = 12
@@ -245,67 +231,62 @@ function Tab:CreateGroupbox(parentContainer, title)
     TitleLabel.Parent = Header
 
     local Container = Instance.new("Frame")
-    Container.Size = UDim2.new(1, -12, 0, 0)
-    Container.Position = UDim2.new(0, 6, 0, 26)
+    Container.Size = UDim2.new(1, -10, 0, 0)
+    Container.Position = UDim2.new(0, 5, 0, 22)
     Container.AutomaticSize = Enum.AutomaticSize.Y
     Container.BackgroundTransparency = 1
     Container.Parent = Group
 
     local Layout = Instance.new("UIListLayout")
-    Layout.Padding = UDim.new(0, 5)
+    Layout.Padding = UDim.new(0, 4)
     Layout.Parent = Container
 
     local Padding = Instance.new("UIPadding")
-    Padding.PaddingBottom = UDim.new(0, 6)
+    Padding.PaddingBottom = UDim.new(0, 5)
     Padding.Parent = Container
 
-    return setmetatable({
-        Frame = Group,
-        Container = Container
-    }, Groupbox)
+    return setmetatable({ Frame = Group, Container = Container }, Groupbox)
 end
 
-----------------------------------------------------
--- GROUPBOX ELEMENTS
-----------------------------------------------------
 function Groupbox:AddToggle(flag, options)
     options = options or {}
     local text = options.Text or "Toggle"
     local default = options.Default or false
+    local color = options.Color or Linoria.Theme.Accent
     local callback = options.Callback or function() end
 
     local Row = Instance.new("Frame")
-    Row.Size = UDim2.new(1, 0, 0, 18)
+    Row.Size = UDim2.new(1, 0, 0, 16)
     Row.BackgroundTransparency = 1
     Row.Parent = self.Container
 
     local Box = Instance.new("TextButton")
     Box.Text = ""
-    Box.Size = UDim2.new(0, 12, 0, 12)
-    Box.Position = UDim2.new(0, 0, 0.5, -6)
-    Box.BackgroundColor3 = default and options.Color or Vanilla.Theme.Accent
-    Box.BorderColor3 = Vanilla.Theme.Outline
+    Box.Size = UDim2.new(0, 10, 0, 10)
+    Box.Position = UDim2.new(0, 0, 0.5, -5)
+    Box.BackgroundColor3 = default and color or Linoria.Theme.MainFrame
+    Box.BorderColor3 = Linoria.Theme.Outline
     Box.BorderSizePixel = 1
     Box.Parent = Row
 
     local Label = Instance.new("TextLabel")
     Label.Text = text
-    Label.Size = UDim2.new(1, -20, 1, 0)
-    Label.Position = UDim2.new(0, 18, 0, 0)
-    Label.TextColor3 = Vanilla.Theme.Text
+    Label.Size = UDim2.new(1, -15, 1, 0)
+    Label.Position = UDim2.new(0, 15, 0, 0)
+    Label.TextColor3 = Linoria.Theme.Text
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Font = Enum.Font.Code
-    Label.TextSize = 12
+    Label.TextSize = 11
     Label.BackgroundTransparency = 1
     Label.Parent = Row
 
     local state = default
-    Vanilla.Flags[flag] = state
+    Linoria.Flags[flag] = state
 
     Box.MouseButton1Click:Connect(function()
         state = not state
-        Vanilla.Flags[flag] = state
-        Box.BackgroundColor3 = state and (options.Color or Vanilla.Theme.Accent) or Vanilla.Theme.MainFrame
+        Linoria.Flags[flag] = state
+        Box.BackgroundColor3 = state and color or Linoria.Theme.MainFrame
         task.spawn(callback, state)
     end)
 
@@ -314,14 +295,14 @@ function Groupbox:AddToggle(flag, options)
     function toggleObj:AddColorPicker(cpFlag, cpOptions)
         cpOptions = cpOptions or {}
         local cpDefault = cpOptions.Default or Color3.fromRGB(255, 255, 255)
-        Vanilla.Flags[cpFlag] = cpDefault
+        Linoria.Flags[cpFlag] = cpDefault
 
         local CPBtn = Instance.new("TextButton")
         CPBtn.Text = ""
         CPBtn.Size = UDim2.new(0, 16, 0, 10)
         CPBtn.Position = UDim2.new(1, -16, 0.5, -5)
         CPBtn.BackgroundColor3 = cpDefault
-        CPBtn.BorderColor3 = Vanilla.Theme.Outline
+        CPBtn.BorderColor3 = Linoria.Theme.Outline
         CPBtn.BorderSizePixel = 1
         CPBtn.Parent = Row
 
@@ -338,17 +319,18 @@ function Groupbox:AddSlider(flag, options)
     local max = options.Max or 100
     local default = options.Default or min
     local suffix = options.Suffix or ""
+    local color = options.Color or Linoria.Theme.Accent
     local callback = options.Callback or function() end
 
     local Row = Instance.new("Frame")
-    Row.Size = UDim2.new(1, 0, 0, 26)
+    Row.Size = UDim2.new(1, 0, 0, 24)
     Row.BackgroundTransparency = 1
     Row.Parent = self.Container
 
     local Label = Instance.new("TextLabel")
     Label.Text = text
-    Label.Size = UDim2.new(1, 0, 0, 12)
-    Label.TextColor3 = Vanilla.Theme.Text
+    Label.Size = UDim2.new(1, 0, 0, 11)
+    Label.TextColor3 = Linoria.Theme.Text
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Font = Enum.Font.Code
     Label.TextSize = 11
@@ -357,23 +339,23 @@ function Groupbox:AddSlider(flag, options)
 
     local SliderBar = Instance.new("TextButton")
     SliderBar.Text = ""
-    SliderBar.Size = UDim2.new(1, 0, 0, 12)
-    SliderBar.Position = UDim2.new(0, 0, 0, 14)
-    SliderBar.BackgroundColor3 = Vanilla.Theme.MainFrame
-    SliderBar.BorderColor3 = Vanilla.Theme.Outline
+    SliderBar.Size = UDim2.new(1, 0, 0, 11)
+    SliderBar.Position = UDim2.new(0, 0, 0, 12)
+    SliderBar.BackgroundColor3 = Linoria.Theme.MainFrame
+    SliderBar.BorderColor3 = Linoria.Theme.Outline
     SliderBar.BorderSizePixel = 1
     SliderBar.Parent = Row
 
     local Fill = Instance.new("Frame")
     Fill.Size = UDim2.new((default - min)/(max - min), 0, 1, 0)
-    Fill.BackgroundColor3 = options.Color or Vanilla.Theme.Accent
+    Fill.BackgroundColor3 = color
     Fill.BorderSizePixel = 0
     Fill.Parent = SliderBar
 
     local ValueLabel = Instance.new("TextLabel")
     ValueLabel.Text = string.format("%d%s/%d%s", default, suffix, max, suffix)
     ValueLabel.Size = UDim2.new(1, 0, 1, 0)
-    ValueLabel.TextColor3 = Vanilla.Theme.Text
+    ValueLabel.TextColor3 = Linoria.Theme.Text
     ValueLabel.Font = Enum.Font.Code
     ValueLabel.TextSize = 10
     ValueLabel.BackgroundTransparency = 1
@@ -384,21 +366,16 @@ function Groupbox:AddSlider(flag, options)
         local val = math.floor(min + (max - min) * pos)
         Fill.Size = UDim2.new(pos, 0, 1, 0)
         ValueLabel.Text = string.format("%d%s/%d%s", val, suffix, max, suffix)
-        Vanilla.Flags[flag] = val
+        Linoria.Flags[flag] = val
         task.spawn(callback, val)
     end
 
     local dragging = false
     SliderBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            Update(input)
-        end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true; Update(input) end
     end)
     UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            Update(input)
-        end
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then Update(input) end
     end)
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
@@ -410,17 +387,16 @@ function Groupbox:AddDropdown(flag, options)
     local text = options.Text or "Dropdown"
     local values = options.Values or {}
     local default = options.Default or values[1] or ""
-    local callback = options.Callback or function() end
 
     local Row = Instance.new("Frame")
-    Row.Size = UDim2.new(1, 0, 0, 30)
+    Row.Size = UDim2.new(1, 0, 0, 26)
     Row.BackgroundTransparency = 1
     Row.Parent = self.Container
 
     local Label = Instance.new("TextLabel")
     Label.Text = text
-    Label.Size = UDim2.new(1, 0, 0, 12)
-    Label.TextColor3 = Vanilla.Theme.Text
+    Label.Size = UDim2.new(1, 0, 0, 11)
+    Label.TextColor3 = Linoria.Theme.Text
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Font = Enum.Font.Code
     Label.TextSize = 11
@@ -429,17 +405,17 @@ function Groupbox:AddDropdown(flag, options)
 
     local DropBtn = Instance.new("TextButton")
     DropBtn.Text = tostring(default) .. "  ▼"
-    DropBtn.Size = UDim2.new(1, 0, 0, 16)
-    DropBtn.Position = UDim2.new(0, 0, 0, 14)
-    DropBtn.BackgroundColor3 = Vanilla.Theme.MainFrame
-    DropBtn.BorderColor3 = Vanilla.Theme.Outline
+    DropBtn.Size = UDim2.new(1, 0, 0, 14)
+    DropBtn.Position = UDim2.new(0, 0, 0, 12)
+    DropBtn.BackgroundColor3 = Linoria.Theme.MainFrame
+    DropBtn.BorderColor3 = Linoria.Theme.Outline
     DropBtn.BorderSizePixel = 1
-    DropBtn.TextColor3 = Vanilla.Theme.Text
+    DropBtn.TextColor3 = Linoria.Theme.Text
     DropBtn.Font = Enum.Font.Code
-    DropBtn.TextSize = 11
+    DropBtn.TextSize = 10
     DropBtn.Parent = Row
 
     return DropBtn
 end
 
-return Vanilla
+return Linoria
